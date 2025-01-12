@@ -26,14 +26,17 @@ def check_permutation(perm, color_data = None, n = 8):
             return False
     return True
 
-def get_color_data(image_path, numberOfRows, numberOfColumns, margin = 45):
+def get_color_data(image_path, numberOfRows, numberOfColumns, margin = 42):
     # Read the image
+    print("Reading the image..., margin = ", margin)
     img = cv2.imread(image_path)
     height, width, _ = img.shape
     # Calculate the size of each cell
     cell_width = width // numberOfColumns
     cell_height = height // numberOfRows
     color_data = {}
+    if margin > cell_width//2 or margin > cell_height//2:
+        raise ValueError("Margin is too large!")
     for i in range(numberOfRows):
         for j in range(numberOfColumns):
             # Extract the cell
@@ -44,6 +47,9 @@ def get_color_data(image_path, numberOfRows, numberOfColumns, margin = 45):
             if tuple(avg_color) not in color_data:
                 color_data[tuple(avg_color)] = []
             color_data[tuple(avg_color)].append((i, j))
+    print("Color data:")
+    for i in color_data:
+        print(color_data[i])
     return color_data
 def show(perm):
     for i in range(n):

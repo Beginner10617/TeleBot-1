@@ -3,10 +3,12 @@ from telegram import Update
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes, CallbackContext, ConversationHandler
 from datetime import datetime
 from random import choice
+from pickle import load
 import QueenSolver, asciiArtGen
 
 # Constants
-TOKEN : Final = '8139725820:AAGK16aWE69iVut-jw6BdzAALjD7aIZ1Qkc'
+with open('token.del', 'rb') as f:
+    TOKEN : Final = load(f).decode('utf-8')
 BOT_USERNAME : Final = '@IKnow43Bot'
 WAIT_FOR_BOARD_SIZE : Final = 0
 WAIT_FOR_BOARD : Final = 1
@@ -14,6 +16,7 @@ WAIT_FOR_RPS : Final = 1
 WAIT_FOR_PHOTO_ASCII : Final = 1
 # Variables
 queen_board_size : int = 0
+queen_board_margin : int = 0
 
 # Commands
 async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -30,15 +33,17 @@ async def custom_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def queensolver_init_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text('''Send me the size of the board you want to solve!
+And the margin separated by a space.
     Note that square boards are only supported for now!
-    Example: 8 for an 8x8 board''')
+    Example: 8 42 for an 8x8 board with 42 margin''')
     return WAIT_FOR_BOARD_SIZE
 
 async def queensolver_boardsize_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    global queen_board_size
-    size = update.message.text
+    global queen_board_size, queen_board_margin
+    size, margin = update.message.text.split()
     try:
         queen_board_size = int(size)
+        queen_board_margin = int(margin)
         await update.message.reply_text('Now send me the photo of the board!')
         return WAIT_FOR_BOARD
     except:
@@ -49,10 +54,15 @@ async def queensolver_board_command(update: Update, context: ContextTypes.DEFAUL
     solution = None
     image = update.message.photo[-1]
     image_file = await context.bot.get_file(image.file_id)
+    await update.message.reply_text('Photo received!')
     file_extension = image_file.file_path.split('.')[-1]
     file_path = f"images/Download-{datetime.now().strftime("%Y%m%d%H%M%S")}.{file_extension}"
     await image_file.download_to_drive(custom_path= file_path)
-    color_data = QueenSolver.get_color_data(file_path, queen_board_size, queen_board_size)
+    try:
+        color_data = QueenSolver.get_color_data(file_path, queen_board_size, queen_board_size, queen_board_margin)
+    except:
+        await update.message.reply_text('Invalid Input provided!')
+        return cancel(update, context)
     for perm in QueenSolver.possible_permutations(queen_board_size):
         if QueenSolver.check_permutation(perm, color_data, queen_board_size):
             solution = perm
