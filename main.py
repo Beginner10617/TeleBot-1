@@ -4,7 +4,7 @@ from telegram.ext import Application, CommandHandler, MessageHandler, filters, C
 from datetime import datetime
 from random import choice
 from pickle import load
-import QueenSolver, asciiArtGen
+import QueenSolver, asciiArtGen, wordle, emoji
 
 # Constants
 with open('token.del', 'rb') as f:
@@ -14,9 +14,14 @@ WAIT_FOR_BOARD_SIZE : Final = 0
 WAIT_FOR_BOARD : Final = 1
 WAIT_FOR_RPS : Final = 1
 WAIT_FOR_PHOTO_ASCII : Final = 1
+WAIT_FOR_WORDLE : Final = 1
+EMOJI : Final = {'G': 'green_square', 'Y':'yellow_square', 'R':'red_square'}
+
 # Variables
 queen_board_size : int = 0
 queen_board_margin : int = 0
+WORD_FOR_WORDLE : str = ''
+wordle_guesses : int = 0
 
 # Commands
 async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -126,6 +131,36 @@ async def toss_coin(update: Update, context: ContextTypes.DEFAULT_TYPE):
     result = choice(['Heads', 'Tails'])
     await update.message.reply_text(f"The result is {result}")
 
+async def wordle_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    global WORD_FOR_WORDLE, wordle_guesses
+    WORD_FOR_WORDLE = wordle.get_random_word().lower()
+    while wordle.is_valid_word(WORD_FOR_WORDLE) == False:
+        WORD_FOR_WORDLE = wordle.get_random_word().lower()
+    await update.message.reply_text('Wordle word generated! Try to guess the word in 6 tries!')
+    wordle_guesses = 0
+    return WAIT_FOR_WORDLE
+
+async def wordle_guess(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    global WORD_FOR_WORDLE, wordle_guesses
+    guess = update.message.text.lower()
+    if len(guess) != 5 or wordle.is_valid_word(guess) == False:
+        await update.message.reply_text('Invalid guess!')
+        return WAIT_FOR_WORDLE
+    response = wordle.response(WORD_FOR_WORDLE, guess)
+    if response == False:
+        await update.message.reply_text('You guessed the word!')
+        return ConversationHandler.END
+    else:
+        response_text = ''
+        for i in response:
+            response_text += emoji.emojize(f':{EMOJI[i]}:')
+        await update.message.reply_text(response_text)
+        wordle_guesses += 1
+    if wordle_guesses == 6:
+        await update.message.reply_text(f'You lost! The word was {WORD_FOR_WORDLE}')
+        return ConversationHandler.END
+    return WAIT_FOR_WORDLE
+
 # Responses
 async def handle_photo(update: Update, context: CallbackContext):
     # Get the largest version of the photo sent by the user
@@ -178,6 +213,7 @@ async def error(update: Update, context: ContextTypes.DEFAULT_TYPE):
     print(f"Update {update} caused error {context.error}")
 
 # Conversation Handlers
+
 queen_conv_handler = ConversationHandler(
     entry_points=[CommandHandler("queensolver", queensolver_init_command)],
     states={
@@ -203,6 +239,14 @@ ascii_conv_handler = ConversationHandler(
     fallbacks=[CommandHandler("cancel", cancel)],
 )
 
+wordle_conv_handler = ConversationHandler(
+    entry_points=[CommandHandler("wordle", wordle_command)],
+    states={
+        WAIT_FOR_WORDLE : [MessageHandler(filters.TEXT & ~filters.COMMAND, wordle_guess)],
+    },
+    fallbacks=[CommandHandler("cancel", cancel)],
+)
+
 if __name__ == '__main__':
     print("Starting bot...")
     app = Application.builder().token(TOKEN).build()
@@ -217,6 +261,7 @@ if __name__ == '__main__':
     app.add_handler(queen_conv_handler)
     app.add_handler(rps_conv_handler)
     app.add_handler(ascii_conv_handler)
+    app.add_handler(wordle_conv_handler)
 
     # Messages
     app.add_handler(MessageHandler(filters.TEXT, handle_message))

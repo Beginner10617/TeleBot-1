@@ -80,5 +80,4 @@ Features to add in the bot:
     College Schedule Bot
     Custom GPA Calculator
     Word games (e.g., word chains, riddles)
-    Guess the Word
 '''

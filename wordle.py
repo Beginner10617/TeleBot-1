@@ -1,5 +1,4 @@
 import requests
-
 def get_random_word():
     url = "https://random-word-api.herokuapp.com/word?number=1&length=5"
     response = requests.get(url)
@@ -12,13 +11,14 @@ def get_random_word():
 
 def is_valid_word(word):
     # Not working
-    url = f"https://api.datamuse.com/words?sp={word}&max=1"
+    url = f"https://api.dictionaryapi.dev/api/v2/entries/en/{word}"
     response = requests.get(url)
     if response.status_code == 200:
         words = response.json()
         if words:  # If we get a result, the word is valid
             return True
-    return False
+    elif response.status_code == 404:
+        return False
 
 def response(Word : str, Guess : str):
     guess = Guess.lower()
@@ -53,11 +53,13 @@ def response(Word : str, Guess : str):
 
 if __name__ == "__main__":
     word = get_random_word()
+    while not is_valid_word(word):
+        word = get_random_word()
     print("Word:", word)
     Response = True
     while Response:
         guess = input("Enter your guess: ")
-        print(is_valid_word(guess))
         Response = response(word, guess)
         if Response:print(Response)
         else:print("You guessed the word!")
+        
