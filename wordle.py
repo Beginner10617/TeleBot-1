@@ -32,23 +32,22 @@ def response(Word : str, Guess : str):
     letterCount = {}
     for i in set(word):
         letterCount[i] = word.count(i)
-    output = ""
+    output = [""] * 5
+    Indexes = [i for i in range(5)]
     for i in range(5):
-        if guess[i] in letterCount:
+        if guess[i] == word[i]:
+            output[i] = 'G'
+            Indexes.remove(i)
+            letterCount[guess[i]] -= 1
+    for i in Indexes:
+        if guess[i] in word:
             if letterCount[guess[i]] > 0:
+                output[i] = 'Y'
                 letterCount[guess[i]] -= 1
-                if guess[i] == word[i]:
-                    # If the letter is in the word and in the correct position
-                    output += "G"
-                elif guess[i] in word:
-                    # If the letter is in the word but in the wrong position
-                    output += "Y"
             else:
-                # If the letter is in the word but already used
-                output += "R"
+                output[i] = 'R'
         else:
-            # If the letter is not in the word
-            output += "R"
+            output[i] = 'R'
     return output
 
 if __name__ == "__main__":

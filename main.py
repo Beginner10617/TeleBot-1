@@ -143,14 +143,19 @@ async def wordle_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def wordle_guess(update: Update, context: ContextTypes.DEFAULT_TYPE):
     global WORD_FOR_WORDLE, wordle_guesses
     guess = update.message.text.lower()
+    print("guess : ", guess)
     if len(guess) != 5 or wordle.is_valid_word(guess) == False:
+        print("Invalid guess")
         await update.message.reply_text('Invalid guess!')
         return WAIT_FOR_WORDLE
+    print("Valid guess, checking response")
     response = wordle.response(WORD_FOR_WORDLE, guess)
     if response == False:
+        print("You guessed the word!")
         await update.message.reply_text('You guessed the word!')
         return ConversationHandler.END
     else:
+        print(response)
         response_text = ''
         for i in response:
             response_text += emoji.emojize(f':{EMOJI[i]}:')
