@@ -4,7 +4,12 @@ from telegram.ext import Application, CommandHandler, MessageHandler, filters, C
 from datetime import datetime
 from random import choice
 from pickle import load
-import QueenSolver, asciiArtGen, wordle, emoji
+from threading import Thread
+from bcrypt import hashpw, gensalt, checkpw
+import QueenSolver, asciiArtGen, wordle, emoji, PISeries
+
+# Parallel functions
+Thread(target=PISeries.calculate_pi, daemon=True).start()
 
 # Constants
 with open('token.del', 'rb') as f:
@@ -15,6 +20,7 @@ WAIT_FOR_BOARD : Final = 1
 WAIT_FOR_RPS : Final = 1
 WAIT_FOR_PHOTO_ASCII : Final = 1
 WAIT_FOR_WORDLE : Final = 1
+WAIT_FOR_PASSWORD : Final = 1
 EMOJI : Final = {'G': 'green_square', 'Y':'yellow_square', 'R':'red_square'}
 
 # Variables
@@ -166,6 +172,25 @@ async def wordle_guess(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return ConversationHandler.END
     return WAIT_FOR_WORDLE
 
+async def access_file(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text("Password?")
+    return WAIT_FOR_PASSWORD
+
+async def check_password(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    password = update.message.text
+    with open('accessibleFile.del', 'rb') as f:
+        while True:
+            try:
+                hash = load(f)
+                if checkpw(password.encode(), hash[0]):
+                    await update.message.reply_text("Access granted!")
+                    document = open(hash[1], 'rb')
+                    await update.message.reply_document(document)
+                    return ConversationHandler.END
+            except EOFError:
+                await update.message.reply_text("Invalid password!")
+                return WAIT_FOR_PASSWORD
+            
 # Responses
 async def handle_photo(update: Update, context: CallbackContext):
     # Get the largest version of the photo sent by the user
@@ -252,6 +277,14 @@ wordle_conv_handler = ConversationHandler(
     fallbacks=[CommandHandler("cancel", cancel)],
 )
 
+password_conv_handler = ConversationHandler(
+    entry_points=[CommandHandler("access", access_file)],
+    states={
+        WAIT_FOR_PASSWORD : [MessageHandler(filters.TEXT & ~filters.COMMAND, check_password)],
+    },
+    fallbacks=[CommandHandler("cancel", cancel)],
+)
+
 if __name__ == '__main__':
     print("Starting bot...")
     app = Application.builder().token(TOKEN).build()
@@ -267,6 +300,7 @@ if __name__ == '__main__':
     app.add_handler(rps_conv_handler)
     app.add_handler(ascii_conv_handler)
     app.add_handler(wordle_conv_handler)
+    app.add_handler(password_conv_handler)
 
     # Messages
     app.add_handler(MessageHandler(filters.TEXT, handle_message))
