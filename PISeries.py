@@ -32,11 +32,12 @@ File.close()
 
 def calculate_pi(goal = float("inf"), wait = 5000):
     global n, yn, xn, Sum
+    print(f"Calculating pi, Starting from {n}th term...")
     File = open("PI Approximation/Digits.txt", "r")
     AlreadyKnown = len(File.read())
     File.close()
     digits = AlreadyKnown
-    while digits <= goal:
+    while digits <= goal + AlreadyKnown:
         #print(f"Calculating {n}th term...")
         n += 1
         yn *= 2 * n ** 2
@@ -56,5 +57,6 @@ def calculate_pi(goal = float("inf"), wait = 5000):
             File = open("PI Approximation/Digits.txt", "w")
             WriteDigits(File, Digits)
             File.close()
-            print("Waiting for 5 seconds...")
-            sleep(5)
+            if wait != 1:
+                print("Waiting for 5 seconds...")
+                sleep(5)

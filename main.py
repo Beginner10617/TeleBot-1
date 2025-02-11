@@ -6,14 +6,13 @@ from random import choice
 from pickle import load
 from threading import Thread
 from bcrypt import hashpw, gensalt, checkpw
-import QueenSolver, asciiArtGen, wordle, emoji, PISeries
-
-# Parallel functions
-Thread(target=PISeries.calculate_pi, daemon=True).start()
+import QueenSolver, asciiArtGen, wordle, emoji, PISeries, iitk_student_search, os
+from dotenv import load_dotenv
+import io
 
 # Constants
-with open('token.del', 'rb') as f:
-    TOKEN : Final = load(f).decode('utf-8')
+load_dotenv()
+TOKEN = os.getenv('BOT_TOKEN')
 BOT_USERNAME : Final = '@IKnow43Bot'
 WAIT_FOR_BOARD_SIZE : Final = 0
 WAIT_FOR_BOARD : Final = 1
@@ -67,7 +66,7 @@ async def queensolver_board_command(update: Update, context: ContextTypes.DEFAUL
     image_file = await context.bot.get_file(image.file_id)
     await update.message.reply_text('Photo received!')
     file_extension = image_file.file_path.split('.')[-1]
-    file_path = f"images/Download-{datetime.now().strftime("%Y%m%d%H%M%S")}.{file_extension}"
+    file_path = f"images/Download-"+datetime.now().strftime("%Y%m%d%H%M%S")+'.'+file_extension
     await image_file.download_to_drive(custom_path= file_path)
     try:
         color_data = QueenSolver.get_color_data(file_path, queen_board_size, queen_board_size, queen_board_margin)
@@ -123,7 +122,7 @@ async def ascii_art_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     photo = update.message.photo[-1]
     photo_file = await context.bot.get_file(photo.file_id)
     file_extension = photo_file.file_path.split('.')[-1]
-    file_path = f"images/Download-{datetime.now().strftime("%Y%m%d%H%M%S")}.{file_extension}"
+    file_path = f"images/Download-"+datetime.now().strftime("%Y%m%d%H%M%S")+'.'+file_extension
     await photo_file.download_to_drive(custom_path= file_path)
     await update.message.reply_text('Photo received!')
     output = asciiArtGen.ascii_art(file_path)
@@ -190,14 +189,43 @@ async def check_password(update: Update, context: ContextTypes.DEFAULT_TYPE):
             except EOFError:
                 await update.message.reply_text("Invalid password!")
                 return WAIT_FOR_PASSWORD
-            
+
+async def calculate_and_send_pi(update : Update, context : ContextTypes.DEFAULT_TYPE):
+    try:
+        digits = int(context.args[0]) if context.args else 10 # Extract digits from command arguments
+    except (IndexError, ValueError):
+        await update.message.reply_text("Please provide a valid number of digits!")
+        return
+    await update.message.reply_text("Calculating Pi...")
+    PISeries.calculate_pi(goal=digits, wait=1)
+    await update.message.reply_text("Pi calculated! Note that last digit maybe erroneous.")
+    document = open('PI Approximation/Digits.txt', 'rb')
+    await update.message.reply_document(document)               
+
+async def student_search(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    try:
+        roll_number = int(context.args[0]) if context.args else 0
+    except (IndexError, ValueError):
+        await update.message.reply_text("Please provide a valid roll number!")
+        return
+    await update.message.reply_text("Searching for student details...")
+    card = iitk_student_search.generate_student_card(roll_number)
+    image_io = io.BytesIO()
+    card.save(image_io, format="PNG")
+    image_io.seek(0)
+    '''await update.message.reply_text("Student details:")
+    for key, value in details.items():
+        await update.message.reply_text(f"{key}: {value}")'''
+    await update.message.reply_text("Student details:")
+    await context.bot.send_photo(chat_id=update.message.chat_id, photo=image_io)
+
 # Responses
 async def handle_photo(update: Update, context: CallbackContext):
     # Get the largest version of the photo sent by the user
     photo = update.message.photo[-1]  # The last item in the list is the largest resolution
     photo_file = await context.bot.get_file(photo.file_id)  # Retrieve the file object
     file_extension = photo_file.file_path.split('.')[-1]
-    file_path = f"images/Download-{datetime.now().strftime("%Y%m%d%H%M%S")}.{file_extension}"
+    file_path = f"images/Download-"+datetime.now().strftime("%Y%m%d%H%M%S")+'.'+file_extension
     
     await photo_file.download_to_drive(custom_path= file_path)  # Download the photo to the local file system
     await update.message.reply_text('Photo received!')  # Send a message to the user
@@ -294,6 +322,7 @@ if __name__ == '__main__':
     app.add_handler(CommandHandler('help', help_command))
     app.add_handler(CommandHandler('custom', custom_command))
     app.add_handler(CommandHandler('tosscoin', toss_coin))
+    app.add_handler(CommandHandler('student', student_search))
 
     # Conversations
     app.add_handler(queen_conv_handler)
