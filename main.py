@@ -209,14 +209,22 @@ async def student_search(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("Please provide a valid roll number!")
         return
     await update.message.reply_text("Searching for student details...")
-    card = iitk_student_search.generate_student_card(roll_number)
+    details, image = iitk_student_search.get_student(roll_number)
     image_io = io.BytesIO()
-    card.save(image_io, format="PNG")
+    image.save(image_io, format="PNG")
     image_io.seek(0)
     '''await update.message.reply_text("Student details:")
     for key, value in details.items():
         await update.message.reply_text(f"{key}: {value}")'''
     await update.message.reply_text("Student details:")
+    await update.message.reply_text(f"Name: {details['Name']}")
+    await update.message.reply_text(f"Program: {details['Program']}")
+    await update.message.reply_text(f"Department: {details['Department']}")
+    await update.message.reply_text(f"Gender: {details['Gender'][0]}")
+    await update.message.reply_text(f"Email: {details['E-Mail']}")
+    await update.message.reply_text(f"Hostel: {details['Hostel Info']}")
+    await update.message.reply_text(f"Blood Group: {details['Blood Group']}")
+    
     await context.bot.send_photo(chat_id=update.message.chat_id, photo=image_io)
 
 # Responses

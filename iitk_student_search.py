@@ -100,6 +100,9 @@ def get_student(roll_number):
     return details, image
 
 def generate_student_card(roll_number):
+
+    # Need improvement
+    
     # Define card size
     card_width, card_height = 500, 300
     background_color = (255, 255, 255)  # White background
@@ -110,7 +113,6 @@ def generate_student_card(roll_number):
 
     # Fetch student details and image
     details, profile_img = get_student(roll_number)
-    profile_img.show()
     name = details['Name']
     program = details['Program']
     department = details['Department']
